@@ -9,9 +9,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.json.simple.JSONObject;
@@ -31,17 +38,108 @@ public class Application implements CommandLineRunner {
 	@Autowired
 	private WordsRepository wordsRepository;
 
-	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
-	}
-
 	private static final String TEXT_FILE_DIRECTORY = "input";
 	private static final String REDUCED_FILE_DIRECTORY = "reduced";
 	private static final int MAP_SIZE = 1024 * 1024 * 100; // 10MB
 	private static File folder;
+	private static File mapFolder;
 	private static HashMap<String, Integer> mapHash = new HashMap<>();
 	private static final Gson gson = new Gson();
 	
+	
+	public static void main(String[] args) {
+		SpringApplication.run(Application.class, args);
+	}
+
+	
+	@Override
+	public void run(String... args) throws Exception {
+		
+		 folder = new File(TEXT_FILE_DIRECTORY);
+	     File[] inputFiles = folder.listFiles();
+	     map(inputFiles);
+	     reduce();
+		
+		BufferedReader br = null;
+		FileReader fr = null;
+		Words word = null;
+		Words word2 = null;
+		mapFolder = new File(REDUCED_FILE_DIRECTORY);
+		File[] files = mapFolder.listFiles();
+		
+		
+		JSONObject json = null;
+		
+		Date date = new Date();
+		System.out.println("Baslamadan once: " + date.toString());
+		
+		for (File file : files) {
+
+			fr = new FileReader(file);
+			br = new BufferedReader(fr);
+			String sCurrentLine;
+			
+			while ((sCurrentLine = br.readLine()) != null) {
+				JSONParser parser = new JSONParser();
+				json = (JSONObject) parser.parse(sCurrentLine);
+				System.out.println(json.toString());
+				word = new Words(sCurrentLine);
+//				word2 = new Words(file);
+			}
+		}
+		
+		
+		wordsRepository.deleteAll();
+		
+		try {
+			wordsRepository.save(word);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			System.out.println(e.getMessage());
+		}
+		
+
+		for (Words words : wordsRepository.findAll()) {
+			
+			Entry<String, Integer> firstEntry = words.getSortedWordMap().entrySet().iterator().next();
+			
+			Iterator<Map.Entry<String,Integer>> iterator = words.getSortedWordMap().entrySet().iterator();
+		    Map.Entry<String, Integer> lastEntry = null;
+			
+		    while (iterator.hasNext()) {
+		    	lastEntry = iterator.next();
+			}
+			
+			String firstKey = firstEntry.getKey();
+			int firstValue = firstEntry.getValue();
+			
+			String lastKey = lastEntry.getKey();
+			int lastValue = lastEntry.getValue();
+			
+			System.out.println("Least appeared key ");
+			System.out.println("Word " + firstKey + " appeared " + firstValue + " times" );
+			System.out.println("-----------------------------------");
+			
+			System.out.println("Most appeared key ");
+			System.out.println("Word " + lastKey + " appeared " + lastValue + " times" );
+			System.out.println("-----------------------------------");
+		
+		}
+		
+//
+//		// fetch an individual customer
+//		System.out.println("Customer found with findByFirstName('Alice'):");
+//		System.out.println("--------------------------------");
+//		System.out.println(repository.findByFirstName("Alice"));
+//
+//		System.out.println("Customers found with findByLastName('Smith'):");
+//		System.out.println("--------------------------------");
+//		for (Customer customer : repository.findByLastName("Smith")) {
+//			System.out.println(customer);
+//		}
+
+	}
+
 	public static void processLine(String[] split){
         Arrays.stream(split).filter(word ->!word.equals("")).sequential().forEach(word->{
             Integer num = mapHash.get(word);
@@ -169,83 +267,6 @@ public class Application implements CommandLineRunner {
     }
 
 
-	@Override
-	public void run(String... args) throws Exception {
-		
-		 folder = new File(TEXT_FILE_DIRECTORY);
-	     File[] inputFiles = folder.listFiles();
-	     map(inputFiles);
-	     reduce();
-		
-		BufferedReader br = null;
-		FileReader fr = null;
-		Words word = null;
-		Words word2 = null;
-		folder = new File(REDUCED_FILE_DIRECTORY);
-		File[] files = folder.listFiles();
-		
-		
-		JSONObject json = null;
-		
-		Date date = new Date();
-		System.out.println("Baslamadan once: " + date.toString());
-		
-		for (File file : files) {
-
-			fr = new FileReader(file);
-			br = new BufferedReader(fr);
-			String sCurrentLine;
-			
-			while ((sCurrentLine = br.readLine()) != null) {
-				JSONParser parser = new JSONParser();
-				json = (JSONObject) parser.parse(sCurrentLine);
-				System.out.println(json.toString());
-				word = new Words(sCurrentLine);
-//				word2 = new Words(file);
-			}
-		}
-//	    System.out.println(word.getWordmap());
-		wordsRepository.deleteAll();
-//
-//		// save a couple of customers
-		
-		Date date4 = new Date();
-		System.out.println("DBye yazılmadan once : " + date4.toString());
-		
-		try {
-			wordsRepository.save(word2);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			System.out.println("An error occured");
-		}
-//		wordsRepository.save(new Customer("Bob", "Smith"));
-//
-		// fetch all customers
-		
-		Date date2 = new Date();
-		System.out.println("DBye yazıldıktan sonra, çekmeden önce: "+date2.toString());
-		
-		System.out.println("Customers found with findAll():");
-		System.out.println("-------------------------------");
-		for (Words words : wordsRepository.findAll()) {
-			System.out.println(words.getWordmap());
-		}
-		System.out.println();
-		
-		Date date3 = new Date();
-		System.out.println("cekildikten sonra : "+date3.toString());
-//
-//		// fetch an individual customer
-//		System.out.println("Customer found with findByFirstName('Alice'):");
-//		System.out.println("--------------------------------");
-//		System.out.println(repository.findByFirstName("Alice"));
-//
-//		System.out.println("Customers found with findByLastName('Smith'):");
-//		System.out.println("--------------------------------");
-//		for (Customer customer : repository.findByLastName("Smith")) {
-//			System.out.println(customer);
-//		}
-
-	}
+	
 
 }

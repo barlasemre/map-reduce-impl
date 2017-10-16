@@ -2,60 +2,89 @@ package hello;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import java.io.File;
-import java.util.Map;
- 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Words {
 
-	public Map<String, Integer> wordmap;
-	
+	public Map<String, Integer> wordMap;
+	public Map<String, Integer> sortedWordMap;
 	public String word;
 	public int number;
 	
 	public Words() {}
 	
 	public Words(String json) {
-		wordmap = new HashMap<String, Integer>();
+	
+		wordMap = new HashMap<String, Integer>();
 		
 		json = json.substring(1, json.length()-1);
 		String[] pairs = json.split(",");
 		for (int i=0;i<pairs.length;i++) {
 		    String pair = pairs[i];
 		    String[] keyValue = pair.split(":");
-		    wordmap.put(keyValue[0], Integer.valueOf(keyValue[1]));
+		    wordMap.put(keyValue[0], Integer.valueOf(keyValue[1]));
 		}
-		System.out.println(getWordmap().toString());
 		
+		 sortedWordMap =
+				 wordMap.entrySet().stream()
+	                        .sorted(Map.Entry.comparingByValue())
+	                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+	                                (e1, e2) -> e1, LinkedHashMap::new));
 		
+//		sortedWordMap.putAll(wordMap);
+//		entriesSortedByValues(sortedWordMap);
+		
+//		System.out.println(getWordmap().toString());
+		
+		setSortedWordMap(sortedWordMap);
 		
 	}
 	
 	public Words(File file) {
 		ObjectMapper mapper = new ObjectMapper();
-
+		Map<String, Integer> wordMap = null;
+		
 		try {
-            Map<String, Integer> wordmap = mapper.readValue(file, new TypeReference<Map<String, Integer>>() {
+            wordMap = mapper.readValue(file, new TypeReference<Map<String, Integer>>() {
             });
  
         } catch (Exception e) {
             e.printStackTrace();
         }
 		
+		sortedWordMap =
+				 wordMap.entrySet().stream()
+	                        .sorted(Map.Entry.comparingByValue())
+	                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+	                                (e1, e2) -> e1, LinkedHashMap::new));
+		
+		setSortedWordMap(sortedWordMap);
 	}
 
 	public Map<String, Integer> getWordmap() {
-		return wordmap;
+		return wordMap;
 	}
 
-	public void setWordmap(Map<String, Integer> wordmap) {
-		this.wordmap = wordmap;
+	public Map<String, Integer> getSortedWordMap() {
+		return sortedWordMap;
 	}
+
+
+	public void setSortedWordMap(Map<String, Integer> sortedWordMap) {
+		this.sortedWordMap = sortedWordMap;
+	}
+
+
+	public Map<String, Integer> getWordMap() {
+		return wordMap;
+	}
+
+
 	
 	
 }
