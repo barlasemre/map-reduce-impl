@@ -2,7 +2,7 @@
 
 Word Counter Application with simple map-reduce aproach
 
-This project is a simple word counter application which uses map reduce algorithm. Application writes the words counted to the Mongo db. In order to run the application, MongoDB should be run before the project. Input file directory should contain files to process. So, input files should be put into "input" file directory before run the application.
+This project is a simple word counter application which uses map reduce algorithm. Application writes the words counted to the Mongo db. In order to run the application, MongoDB should be run before the project. Input file directory should only contain files to process. So, first clean the files under "input" directory, then put all input files into this directory before run the application.
 
 Running MongoDB:
 
