@@ -9,18 +9,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,45 +56,16 @@ public class Application implements CommandLineRunner {
 	     map(inputFiles);
 	     reduce();
 		
-		BufferedReader br = null;
-		FileReader fr = null;
-		Words word = null;
-		Words word2 = null;
-		mapFolder = new File(REDUCED_FILE_DIRECTORY);
-		File[] files = mapFolder.listFiles();
-		
-		
-		JSONObject json = null;
-		
-		Date date = new Date();
-		System.out.println("Baslamadan once: " + date.toString());
-		
-		for (File file : files) {
-
-			fr = new FileReader(file);
-			br = new BufferedReader(fr);
-			String sCurrentLine;
-			
-			while ((sCurrentLine = br.readLine()) != null) {
-				JSONParser parser = new JSONParser();
-				json = (JSONObject) parser.parse(sCurrentLine);
-				System.out.println(json.toString());
-				word = new Words(sCurrentLine);
-//				word2 = new Words(file);
-			}
-		}
-		
-		
 		wordsRepository.deleteAll();
+		
+		Words word = createObjectToWriteMongo();
 		
 		try {
 			wordsRepository.save(word);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			System.out.println(e.getMessage());
 		}
 		
-
 		for (Words words : wordsRepository.findAll()) {
 			
 			Entry<String, Integer> firstEntry = words.getSortedWordMap().entrySet().iterator().next();
@@ -126,51 +93,16 @@ public class Application implements CommandLineRunner {
 		
 		}
 		
-//
-//		// fetch an individual customer
-//		System.out.println("Customer found with findByFirstName('Alice'):");
-//		System.out.println("--------------------------------");
-//		System.out.println(repository.findByFirstName("Alice"));
-//
-//		System.out.println("Customers found with findByLastName('Smith'):");
-//		System.out.println("--------------------------------");
-//		for (Customer customer : repository.findByLastName("Smith")) {
-//			System.out.println(customer);
-//		}
-
 	}
-
-	public static void processLine(String[] split){
-        Arrays.stream(split).filter(word ->!word.equals("")).sequential().forEach(word->{
-            Integer num = mapHash.get(word);
-            if(num == null){
-                mapHash.put(word,1);
-            }else{
-                mapHash.put(word,++num);
-            }
-        });
-    }
 
     public static String generateFileName(String count){
         return UUID.randomUUID().toString().replace("-", "") + "_reduce_" + count + ".json";
     }
 
-    public static void writeReducedJson(HashMap<String, Integer> map, String count){
-        Path path = Paths.get(REDUCED_FILE_DIRECTORY + "/" + generateFileName(count));
-        try {
-            Files.createFile(path);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        String json = gson.toJson(map);
-        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            writer.write(json);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-    }
-
+    /* Mapping Job
+     * It counts the words partially, then writes under reduced directory
+     * 
+     */
     public static void map(File[] inputFiles){
         int bytesCount = 0;
         for (File file : inputFiles) {
@@ -200,6 +132,41 @@ public class Application implements CommandLineRunner {
         writeReducedJson(mapHash, "0");
     }
 
+    public static void processLine(String[] split){
+        Arrays.stream(split).filter(word ->!word.equals("")).sequential().forEach(word->{
+            Integer num = mapHash.get(word);
+            if(num == null){
+                mapHash.put(word,1);
+            }else{
+                mapHash.put(word,++num);
+            }
+        });
+    }
+    
+    /*
+     * The process function that writes reduced map file into reduced directory 
+     */
+    public static void writeReducedJson(HashMap<String, Integer> map, String count){
+        Path path = Paths.get(REDUCED_FILE_DIRECTORY + "/" + generateFileName(count));
+        try {
+            Files.createFile(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String json = gson.toJson(map);
+        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+            writer.write(json);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+    
+    /*
+     * Reduce jobs takes reduced files as input, then combines to big picture from smaller pieces.
+     * This process will be last until only 1 file occurs under reduced file directory.
+     * 
+     */
     public static void reduce(){
         folder = new File(REDUCED_FILE_DIRECTORY);
         File[] reducedFiles = null;
@@ -213,6 +180,10 @@ public class Application implements CommandLineRunner {
         }
     }
 
+    /*
+     * The process which merges 2 reduced file into 1 combined map file. 
+     * This process lasts until all files combined. 
+     */
     public static void mergeFile(File file1, File file2, int count){
 
         StringBuffer first = new StringBuffer();
@@ -266,7 +237,30 @@ public class Application implements CommandLineRunner {
 
     }
 
+    public static Words createObjectToWriteMongo() throws IOException {
+    	
+    	BufferedReader br = null;
+		FileReader fr = null;
+		Words word = null;
+		mapFolder = new File(REDUCED_FILE_DIRECTORY);
+		File[] files = mapFolder.listFiles();
+		
+		JSONObject json = null;
+		
+		for (File file : files) {
 
-	
+			fr = new FileReader(file);
+			br = new BufferedReader(fr);
+			String sCurrentLine;
+			
+			while ((sCurrentLine = br.readLine()) != null) {
+				word = new Words(sCurrentLine);
+//				word = new Words(file);
+			}
+		}
+		return word;
+    	
+    	
+    }
 
 }

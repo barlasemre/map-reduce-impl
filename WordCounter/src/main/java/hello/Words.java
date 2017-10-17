@@ -36,11 +36,6 @@ public class Words {
 	                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
 	                                (e1, e2) -> e1, LinkedHashMap::new));
 		
-//		sortedWordMap.putAll(wordMap);
-//		entriesSortedByValues(sortedWordMap);
-		
-//		System.out.println(getWordmap().toString());
-		
 		setSortedWordMap(sortedWordMap);
 		
 	}
