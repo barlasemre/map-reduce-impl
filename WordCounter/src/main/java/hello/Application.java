@@ -51,6 +51,8 @@ public class Application implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		
+		FileUtils.cleanDirectory(new File(REDUCED_FILE_DIRECTORY)); 
+		
 		 folder = new File(TEXT_FILE_DIRECTORY);
 	     File[] inputFiles = folder.listFiles();
 	     map(inputFiles);
